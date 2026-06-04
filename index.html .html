@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Trading Log">
+<title>Trading Log</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0a;
+    --surface: #0d0d0d;
+    --border: #1a1a1a;
+    --border2: #141414;
+    --text: #e0e0e0;
+    --muted: #444;
+    --muted2: #555;
+    --green: #00ff88;
+    --green2: #00cc66;
+    --red: #ff4466;
+    --red2: #cc3355;
+    --white: #fff;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { background: var(--bg); color: var(--text); font-family: 'DM Mono', 'Courier New', monospace; min-height: 100vh; overscroll-behavior: none; }
+  body { padding-bottom: env(safe-area-inset-bottom, 20px); }
+
+  #app { max-width: 430px; margin: 0 auto; }
+
+  /* HEADER */
+  .header { padding: 52px 20px 16px; border-bottom: 1px solid var(--border); }
+  .header-sub { font-size: 9px; letter-spacing: 0.2em; color: var(--muted); margin-bottom: 4px; }
+  .header-title { font-size: 22px; font-weight: 500; letter-spacing: 0.05em; color: var(--white); }
+
+  /* CAPITAL BANNER */
+  .capital-banner {
+    padding: 18px 20px;
+    background: linear-gradient(135deg, #0d0d0d 0%, #111 100%);
+    border-bottom: 1px solid var(--border);
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .capital-label { font-size: 7px; letter-spacing: 0.2em; color: var(--muted); margin-bottom: 6px; }
+  .capital-value { font-size: 28px; font-weight: 500; color: var(--white); letter-spacing: 0.02em; }
+  .capital-since { font-size: 10px; color: var(--muted); margin-top: 4px; }
+  .capital-since span { color: var(--muted2); }
+  .return-value { font-size: 24px; font-weight: 500; }
+  .return-pnl { font-size: 11px; margin-top: 4px; }
+  .pos { color: var(--green); }
+  .pos2 { color: var(--green2); }
+  .neg { color: var(--red); }
+  .neg2 { color: var(--red2); }
+
+  /* STATS GRID */
+  .stats-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1px; background: #111; border-bottom: 1px solid var(--border); }
+  .stat-cell { background: var(--surface); padding: 12px 0; text-align: center; }
+  .stat-label { font-size: 7px; letter-spacing: 0.15em; color: var(--muted); margin-bottom: 5px; }
+  .stat-value { font-size: 16px; font-weight: 500; }
+
+  .stats-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: #111; border-bottom: 1px solid var(--border); }
+  .stat-cell2 { background: var(--surface); padding: 10px 0; text-align: center; }
+
+  /* TABS */
+  .tabs { display: flex; border-bottom: 1px solid var(--border); }
+  .tab {
+    flex: 1; padding: 11px 0; background: none; border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--muted); font-size: 8px; letter-spacing: 0.15em;
+    cursor: pointer; font-family: 'DM Mono', monospace;
+    transition: color 0.2s;
+  }
+  .tab.active { color: var(--green); border-bottom-color: var(--green); }
+
+  /* PANELS */
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  /* CHART */
+  .chart-wrap { padding: 20px 16px 8px; }
+  svg { width: 100%; height: auto; overflow: visible; }
+  .chart-empty { height: 180px; display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 12px; letter-spacing: 0.1em; }
+
+  /* DAY SUMMARY */
+  .day-summary { margin: 0 16px 16px; padding: 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 4px; }
+  .day-summary-title { font-size: 7px; letter-spacing: 0.15em; color: var(--muted); margin-bottom: 10px; }
+  .day-row { display: flex; justify-content: space-between; align-items: center; padding: 7px 0; border-bottom: 1px solid var(--border2); }
+  .day-row:last-child { border-bottom: none; }
+  .day-date { font-size: 10px; color: var(--muted2); }
+  .day-pnl { font-size: 10px; }
+  .day-cap { font-size: 10px; color: #888; }
+
+  /* OPS TABLE */
+  .ops-list { padding: 12px 16px; }
+  .op-row { display: flex; align-items: center; justify-content: space-between; padding: 11px 0; border-bottom: 1px solid var(--border2); }
+  .op-date { font-size: 11px; color: var(--muted2); }
+  .op-pnl { font-size: 13px; font-weight: 500; }
+  .del-btn {
+    background: none; border: 1px solid #1f1f1f; color: #333;
+    font-size: 9px; letter-spacing: 0.1em; padding: 4px 8px;
+    cursor: pointer; border-radius: 2px; font-family: 'DM Mono', monospace;
+  }
+  .empty-msg { text-align: center; color: #333; font-size: 12px; padding: 32px 0; letter-spacing: 0.1em; }
+
+  /* ADD FORM */
+  .add-form { margin: 16px; padding: 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 4px; }
+  .form-title { font-size: 8px; letter-spacing: 0.2em; color: var(--muted); margin-bottom: 14px; }
+  .form-row { display: flex; gap: 8px; margin-bottom: 10px; }
+  .form-field { flex: 1; }
+  .field-label { font-size: 7px; color: #333; letter-spacing: 0.15em; margin-bottom: 5px; }
+  input[type="date"], input[type="number"] {
+    width: 100%; background: var(--bg); border: 1px solid #1f1f1f;
+    color: var(--text); padding: 9px 10px; font-size: 13px;
+    font-family: 'DM Mono', monospace; border-radius: 2px;
+    -webkit-appearance: none; appearance: none;
+  }
+  input[type="date"]:focus, input[type="number"]:focus { outline: none; border-color: #333; }
+  .add-btn {
+    width: 100%; padding: 12px 0;
+    background: var(--green); color: var(--bg);
+    border: none; font-size: 10px; letter-spacing: 0.2em;
+    font-weight: 500; font-family: 'DM Mono', monospace;
+    cursor: pointer; border-radius: 2px; transition: opacity 0.2s;
+  }
+  .add-btn:disabled { opacity: 0.3; cursor: default; }
+
+  /* TOAST */
+  .toast {
+    position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+    background: var(--green); color: var(--bg);
+    padding: 10px 20px; border-radius: 4px;
+    font-size: 10px; letter-spacing: 0.15em;
+    opacity: 0; transition: opacity 0.3s; pointer-events: none;
+  }
+  .toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="header-sub">MAURO ENTRENAMIENTOS</div>
+    <div class="header-title">TRADING LOG</div>
+  </div>
+
+  <!-- CAPITAL BANNER -->
+  <div class="capital-banner">
+    <div>
+      <div class="capital-label">CAPITAL ACTUAL</div>
+      <div class="capital-value" id="capitalValue">$4,300.00</div>
+      <div class="capital-since">desde <span>$4,300</span></div>
+    </div>
+    <div style="text-align:right">
+      <div class="capital-label">RETORNO</div>
+      <div class="return-value" id="returnPct">+0.00%</div>
+      <div class="return-pnl" id="returnPnl">+0.00$</div>
+    </div>
+  </div>
+
+  <!-- STATS -->
+  <div class="stats-grid">
+    <div class="stat-cell">
+      <div class="stat-label">WINRATE</div>
+      <div class="stat-value" id="statWinrate">—</div>
+    </div>
+    <div class="stat-cell">
+      <div class="stat-label">WINS</div>
+      <div class="stat-value pos" id="statWins">0</div>
+    </div>
+    <div class="stat-cell">
+      <div class="stat-label">LOSSES</div>
+      <div class="stat-value neg" id="statLosses">0</div>
+    </div>
+  </div>
+
+  <div class="stats-grid2" id="bestWorst">
+    <div class="stat-cell2">
+      <div class="stat-label">MEJOR OP</div>
+      <div class="stat-value pos" id="statBest">—</div>
+    </div>
+    <div class="stat-cell2">
+      <div class="stat-label">PEOR OP</div>
+      <div class="stat-value neg" id="statWorst">—</div>
+    </div>
+  </div>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('overview')">EQUITY CURVE</button>
+    <button class="tab" onclick="switchTab('table')">OPERACIONES</button>
+    <button class="tab" onclick="switchTab('add')">+ NUEVA</button>
+  </div>
+
+  <!-- PANEL: OVERVIEW -->
+  <div class="panel active" id="panel-overview">
+    <div class="chart-wrap">
+      <svg id="chartSvg" viewBox="0 0 340 170"></svg>
+    </div>
+    <div class="day-summary">
+      <div class="day-summary-title">CAPITAL POR DÍA</div>
+      <div id="daySummary"></div>
+    </div>
+  </div>
+
+  <!-- PANEL: TABLE -->
+  <div class="panel" id="panel-table">
+    <div class="ops-list" id="opsList"></div>
+  </div>
+
+  <!-- PANEL: ADD -->
+  <div class="panel" id="panel-add">
+    <div class="add-form">
+      <div class="form-title">NUEVA OPERACIÓN</div>
+      <div class="form-row">
+        <div class="form-field">
+          <div class="field-label">FECHA</div>
+          <input type="date" id="inputDate">
+        </div>
+        <div class="form-field">
+          <div class="field-label">PNL ($)</div>
+          <input type="number" id="inputPnl" placeholder="-50 / +120" step="0.01">
+        </div>
+      </div>
+      <button class="add-btn" id="addBtn" onclick="addOp()">AÑADIR</button>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast">GUARDADO</div>
+
+<script>
+const STORAGE_KEY = 'mauro-trading-ops';
+const INITIAL_CAPITAL = 4300;
+
+const INITIAL_OPS = [
+  {id:1,date:"2026-06-01",pnl:18.7},{id:2,date:"2026-06-01",pnl:30.11},{id:3,date:"2026-06-01",pnl:32.41},
+  {id:4,date:"2026-06-01",pnl:18.27},{id:5,date:"2026-06-01",pnl:22.52},{id:6,date:"2026-06-01",pnl:12.03},
+  {id:7,date:"2026-06-01",pnl:34.76},{id:8,date:"2026-06-01",pnl:33.5},{id:9,date:"2026-06-01",pnl:8.69},
+  {id:10,date:"2026-06-01",pnl:-185.38},{id:11,date:"2026-06-02",pnl:45.52},{id:12,date:"2026-06-02",pnl:-96.03},
+  {id:13,date:"2026-06-02",pnl:14.31},{id:14,date:"2026-06-02",pnl:15.21},{id:15,date:"2026-06-02",pnl:15.67},
+  {id:16,date:"2026-06-02",pnl:-94.49},{id:17,date:"2026-06-02",pnl:-8.39},{id:18,date:"2026-06-02",pnl:-56.78},
+  {id:19,date:"2026-06-02",pnl:-31.0},{id:20,date:"2026-06-02",pnl:-39.2},{id:21,date:"2026-06-02",pnl:62.62},
+  {id:22,date:"2026-06-02",pnl:-57.44},{id:23,date:"2026-06-02",pnl:-42.7},{id:24,date:"2026-06-02",pnl:-13.4},
+  {id:25,date:"2026-06-02",pnl:-133.06},{id:26,date:"2026-06-02",pnl:9.51},{id:27,date:"2026-06-02",pnl:-146.58},
+  {id:28,date:"2026-06-02",pnl:3.0},{id:29,date:"2026-06-02",pnl:104.3},{id:30,date:"2026-06-02",pnl:9.24},
+  {id:31,date:"2026-06-02",pnl:15.0},{id:32,date:"2026-06-02",pnl:-18.1},{id:33,date:"2026-06-02",pnl:-21.75},
+  {id:34,date:"2026-06-02",pnl:17.3},{id:35,date:"2026-06-02",pnl:-3.57},{id:36,date:"2026-06-02",pnl:0.57},
+  {id:37,date:"2026-06-02",pnl:-3.56},{id:38,date:"2026-06-02",pnl:8.88},{id:39,date:"2026-06-02",pnl:60.24},
+  {id:40,date:"2026-06-02",pnl:60.24},{id:41,date:"2026-06-02",pnl:60.24},{id:42,date:"2026-06-02",pnl:20.35},
+  {id:43,date:"2026-06-02",pnl:-45.14},{id:44,date:"2026-06-02",pnl:-43.56},{id:45,date:"2026-06-02",pnl:44.48},
+  {id:46,date:"2026-06-02",pnl:-36.63},{id:47,date:"2026-06-02",pnl:7.46},{id:48,date:"2026-06-02",pnl:56.83},
+  {id:49,date:"2026-06-02",pnl:22.88},{id:50,date:"2026-06-02",pnl:42.28},{id:51,date:"2026-06-02",pnl:49.68},
+  {id:52,date:"2026-06-02",pnl:59.31},{id:53,date:"2026-06-03",pnl:73.0},{id:54,date:"2026-06-03",pnl:88.67},
+  {id:55,date:"2026-06-03",pnl:81.6},{id:56,date:"2026-06-03",pnl:156.36},{id:57,date:"2026-06-03",pnl:80.82},
+  {id:58,date:"2026-06-03",pnl:40.99},{id:59,date:"2026-06-03",pnl:-11.09}
+];
+
+let ops = [];
+
+function loadOps() {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      ops = parsed.length > 0 ? parsed : INITIAL_OPS;
+    } else {
+      ops = INITIAL_OPS;
+      saveOps();
+    }
+  } catch(e) { ops = INITIAL_OPS; }
+}
+
+function saveOps() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(ops));
+}
+
+function fmtDate(d) {
+  const [y,m,dd] = d.split('-');
+  return `${dd}/${m}/${y.slice(2)}`;
+}
+
+function fmtPnl(v, symbol='$') {
+  return (v >= 0 ? '+' : '') + v.toFixed(2) + symbol;
+}
+
+function today() {
+  return new Date().toISOString().split('T')[0];
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach((el, i) => {
+    el.classList.toggle('active', ['overview','table','add'][i] === tab);
+  });
+  document.querySelectorAll('.panel').forEach(el => el.classList.remove('active'));
+  document.getElementById('panel-' + tab).classList.add('active');
+}
+
+function addOp() {
+  const date = document.getElementById('inputDate').value;
+  const pnlRaw = document.getElementById('inputPnl').value;
+  const pnl = parseFloat(pnlRaw);
+  if (!date || isNaN(pnl)) return;
+  ops.push({ id: Date.now(), date, pnl });
+  ops.sort((a,b) => a.date.localeCompare(b.date));
+  saveOps();
+  document.getElementById('inputPnl').value = '';
+  document.getElementById('inputDate').value = today();
+  render();
+  showToast('GUARDADO');
+  switchTab('overview');
+}
+
+function deleteOp(id) {
+  ops = ops.filter(o => o.id !== id);
+  saveOps();
+  render();
+  showToast('ELIMINADO');
+}
+
+function renderStats() {
+  const total = ops.reduce((s,o) => s+o.pnl, 0);
+  const capital = INITIAL_CAPITAL + total;
+  const pct = (total / INITIAL_CAPITAL) * 100;
+  const wins = ops.filter(o => o.pnl > 0).length;
+  const losses = ops.filter(o => o.pnl < 0).length;
+  const wr = ops.length ? Math.round(wins/ops.length*100) : null;
+  const best = ops.length ? Math.max(...ops.map(o=>o.pnl)) : null;
+  const worst = ops.length ? Math.min(...ops.map(o=>o.pnl)) : null;
+
+  document.getElementById('capitalValue').textContent = '$' + capital.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+
+  const rpct = document.getElementById('returnPct');
+  rpct.textContent = (pct >= 0 ? '+' : '') + pct.toFixed(2) + '%';
+  rpct.className = 'return-value ' + (pct >= 0 ? 'pos' : 'neg');
+
+  const rpnl = document.getElementById('returnPnl');
+  rpnl.textContent = fmtPnl(total, '$');
+  rpnl.className = 'return-pnl ' + (total >= 0 ? 'pos2' : 'neg2');
+
+  document.getElementById('statWinrate').textContent = wr !== null ? wr + '%' : '—';
+  document.getElementById('statWins').textContent = wins;
+  document.getElementById('statLosses').textContent = losses;
+  document.getElementById('statBest').textContent = best !== null ? fmtPnl(best,'$') : '—';
+  document.getElementById('statWorst').textContent = worst !== null ? fmtPnl(worst,'$') : '—';
+}
+
+function renderChart() {
+  const svg = document.getElementById('chartSvg');
+  svg.innerHTML = '';
+
+  if (ops.length === 0) {
+    svg.innerHTML = '<text x="170" y="85" text-anchor="middle" fill="#444" font-size="12" font-family="DM Mono, monospace">AÑADE TU PRIMERA OPERACIÓN</text>';
+    return;
+  }
+
+  const W=340, H=170, PAD={t:16,r:16,b:28,l:58};
+  const iW = W-PAD.l-PAD.r, iH = H-PAD.t-PAD.b;
+
+  // Build equity array starting at 0
+  let eq = [0];
+  ops.forEach(o => eq.push(eq[eq.length-1] + o.pnl));
+
+  const minE = Math.min(...eq), maxE = Math.max(...eq);
+  const range = maxE - minE || 1;
+
+  const xS = i => PAD.l + (i/(eq.length-1))*iW;
+  const yS = v => PAD.t + iH - ((v-minE)/range)*iH;
+  const zeroY = Math.max(PAD.t, Math.min(PAD.t+iH, yS(0)));
+
+  const lastEq = eq[eq.length-1];
+  const lineColor = lastEq >= 0 ? '#00ff88' : '#ff4466';
+  const areaColor = lastEq >= 0 ? 'rgba(0,255,136,0.08)' : 'rgba(255,68,102,0.08)';
+
+  const pts = eq.map((v,i) => `${xS(i)},${yS(v)}`).join(' ');
+  const areaPts = [`${PAD.l},${zeroY}`, ...eq.map((v,i) => `${xS(i)},${yS(v)}`), `${xS(eq.length-1)},${zeroY}`].join(' ');
+
+  // Zero line
+  const zl = document.createElementNS('http://www.w3.org/2000/svg','line');
+  zl.setAttribute('x1',PAD.l); zl.setAttribute('y1',zeroY);
+  zl.setAttribute('x2',W-PAD.r); zl.setAttribute('y2',zeroY);
+  zl.setAttribute('stroke','#333'); zl.setAttribute('stroke-width','1');
+  zl.setAttribute('stroke-dasharray','3,3'); svg.appendChild(zl);
+
+  // Area
+  const area = document.createElementNS('http://www.w3.org/2000/svg','polygon');
+  area.setAttribute('points', areaPts); area.setAttribute('fill', areaColor);
+  svg.appendChild(area);
+
+  // Line
+  const line = document.createElementNS('http://www.w3.org/2000/svg','polyline');
+  line.setAttribute('points', pts); line.setAttribute('fill','none');
+  line.setAttribute('stroke', lineColor); line.setAttribute('stroke-width','2');
+  line.setAttribute('stroke-linejoin','round'); line.setAttribute('stroke-linecap','round');
+  svg.appendChild(line);
+
+  // Dots for each op
+  ops.forEach((o,i) => {
+    const cx = xS(i+1), cy = yS(eq[i+1]);
+    const c = document.createElementNS('http://www.w3.org/2000/svg','circle');
+    c.setAttribute('cx',cx); c.setAttribute('cy',cy); c.setAttribute('r','2.5');
+    c.setAttribute('fill', o.pnl>=0 ? '#00ff88' : '#ff4466');
+    c.setAttribute('stroke','#0a0a0a'); c.setAttribute('stroke-width','1.5');
+    svg.appendChild(c);
+  });
+
+  // Y labels
+  [minE, (minE+maxE)/2, maxE].forEach(v => {
+    const t = document.createElementNS('http://www.w3.org/2000/svg','text');
+    t.setAttribute('x', PAD.l-6); t.setAttribute('y', yS(v)+4);
+    t.setAttribute('text-anchor','end'); t.setAttribute('font-size','9');
+    t.setAttribute('fill','#444'); t.setAttribute('font-family','DM Mono, monospace');
+    t.textContent = (v>=0?'+':'') + v.toFixed(0);
+    svg.appendChild(t);
+  });
+
+  // X labels: unique dates
+  const uniqueDates = [...new Set(ops.map(o=>o.date))];
+  const show = uniqueDates.length <= 4 ? uniqueDates : [uniqueDates[0], uniqueDates[Math.floor(uniqueDates.length/2)], uniqueDates[uniqueDates.length-1]];
+  show.forEach(date => {
+    const lastIdx = ops.map(o=>o.date).lastIndexOf(date);
+    const t = document.createElementNS('http://www.w3.org/2000/svg','text');
+    t.setAttribute('x', xS(lastIdx+1)); t.setAttribute('y', H-6);
+    t.setAttribute('text-anchor','middle'); t.setAttribute('font-size','8');
+    t.setAttribute('fill','#444'); t.setAttribute('font-family','DM Mono, monospace');
+    t.textContent = fmtDate(date);
+    svg.appendChild(t);
+  });
+}
+
+function renderDaySummary() {
+  const byDay = {};
+  ops.forEach(o => { byDay[o.date] = (byDay[o.date]||0) + o.pnl; });
+  let running = INITIAL_CAPITAL;
+  const html = Object.entries(byDay).sort().map(([date,pnl]) => {
+    running += pnl;
+    return `<div class="day-row">
+      <span class="day-date">${fmtDate(date)}</span>
+      <span class="day-pnl ${pnl>=0?'pos':'neg'}">${fmtPnl(pnl,'$')}</span>
+      <span class="day-cap">$${running.toFixed(2)}</span>
+    </div>`;
+  }).join('');
+  document.getElementById('daySummary').innerHTML = html || '<div style="color:#333;font-size:11px;padding:8px 0">Sin datos</div>';
+}
+
+function renderOps() {
+  const list = document.getElementById('opsList');
+  if (ops.length === 0) {
+    list.innerHTML = '<div class="empty-msg">SIN OPERACIONES</div>';
+    return;
+  }
+  list.innerHTML = [...ops].reverse().map(op => `
+    <div class="op-row">
+      <span class="op-date">${fmtDate(op.date)}</span>
+      <span class="op-pnl ${op.pnl>=0?'pos':'neg'}">${fmtPnl(op.pnl,'$')}</span>
+      <button class="del-btn" onclick="deleteOp(${op.id})">DEL</button>
+    </div>
+  `).join('');
+}
+
+function render() {
+  renderStats();
+  renderChart();
+  renderDaySummary();
+  renderOps();
+}
+
+// Init
+document.getElementById('inputDate').value = today();
+loadOps();
+render();
+</script>
+</body>
+</html>
